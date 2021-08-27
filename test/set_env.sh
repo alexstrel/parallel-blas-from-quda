@@ -1,0 +1,7 @@
+export LD_LIBRARY_PATH=../build/lib:$LD_LIBRARY_PATH
+
+export QUDA_RESOURCE_PATH=./
+export QUDA_ENABLE_TUNING=1
+
+
+
