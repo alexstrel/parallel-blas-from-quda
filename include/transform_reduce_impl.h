@@ -3,7 +3,7 @@
 #include <reduce_helper.h>
 #include <transform_reduce.h>
 #include <tunable_reduction.h>
-#include <kernels/transform_reduce.cuh>
+#include <kernels/transform_reduce.hpp>
 #include <array>
 
 namespace quda

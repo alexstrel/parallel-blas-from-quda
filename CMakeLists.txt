@@ -277,7 +277,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
     "-O3 -w ${CXX_OPT} "
     CACHE STRING "Flags used by the C++ compiler during release builds.")
 set(CMAKE_CXX_FLAGS_HOSTDEBUG
-    "-Wall -Wextra -g"
+	"-g -Wall -Wextra -Minfo"
     CACHE STRING "Flags used by the C++ compiler during host-debug builds.")
 set(CMAKE_CXX_FLAGS_DEBUG
     "-Wall -Wextra -g -fno-inline"

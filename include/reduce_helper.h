@@ -1,7 +1,7 @@
 #pragma once
 
 #include <float_vector.h>
-#include <cub_helper.cuh>
+#include <cub_helper.hpp>
 #include <target_device.h>
 #include <reducer.h>
 #include <kernel_helper.h>
@@ -62,7 +62,7 @@ namespace quda
   template <typename T, bool use_kernel_arg = true> struct ReduceArg : kernel_param<use_kernel_arg> {
 
     template <int, int, typename Reducer, typename Arg, typename I>
-    friend __device__  void reduce(Arg&, const Reducer &, const I &, const int);
+    friend void reduce(Arg&, const Reducer &, const I &, const int);
     qudaError_t launch_error; // only do complete if no launch error to avoid hang
 
   private:
@@ -195,7 +195,7 @@ namespace quda
        will be constant along constant blockIdx.y and blockIdx.z.
     */
     template <int block_size_x, int block_size_y = 1, typename Reducer, typename Arg, typename T>
-    __device__ inline void reduce(Arg &arg, const Reducer &r, const T &in, const int idx = 0)
+    inline void reduce(Arg &arg, const Reducer &r, const T &in, const int idx = 0)
     {
       using BlockReduce = cub::BlockReduce<T, block_size_x, cub::BLOCK_REDUCE_WARP_REDUCTIONS, block_size_y>;
       __shared__ typename BlockReduce::TempStorage cub_tmp;
@@ -261,7 +261,7 @@ namespace quda
        will be constant along constant blockIdx.y and blockIdx.z.
     */
     template <int block_size_x, int block_size_y = 1, typename Reducer, typename Arg, typename T>
-    __device__ inline void reduce(Arg &arg, const Reducer &r, const T &in, const int idx = 0)
+    inline void reduce(Arg &arg, const Reducer &r, const T &in, const int idx = 0)
     {
       using BlockReduce = cub::BlockReduce<T, block_size_x, cub::BLOCK_REDUCE_WARP_REDUCTIONS, block_size_y>;
       __shared__ typename BlockReduce::TempStorage cub_tmp;

@@ -2,7 +2,7 @@
 #include <malloc_quda.h>
 #include <reduce_helper.h>
 #include <tunable_nd.h>
-#include <kernels/reduce_init.cuh>
+#include <kernels/reduce_init.hpp>
 
 // These are used for reduction kernels
 static device_reduce_t *d_reduce = nullptr;

@@ -30,19 +30,19 @@ namespace quda {
     static_assert(width <= device::warp_size(), "WarpReduce logical width must not be greater than the warp size");
     using warp_reduce_t = cub::WarpReduce<T, width>;
 
-    __device__ __host__ inline WarpReduce() {}
+    inline WarpReduce() {}
 
     template <bool is_device, typename dummy = void> struct sum { T operator()(const T &value) { return value; } };
 
     template <typename dummy> struct sum<true, dummy> {
-      __device__ inline T operator()(const T &value) {
+       inline T operator()(const T &value) {
         typename warp_reduce_t::TempStorage dummy_storage;
         warp_reduce_t warp_reduce(dummy_storage);
         return warp_reduce.Sum(value);
       }
     };
 
-    __device__ __host__ inline T Sum(const T &value) { return target::dispatch<sum>(value); }
+    inline T Sum(const T &value) { return target::dispatch<sum>(value); }
   };
 
   /**
@@ -54,12 +54,12 @@ namespace quda {
     using block_reduce_t = cub::BlockReduce<T, block_size_x, cub::BLOCK_REDUCE_WARP_REDUCTIONS>;
     const int batch;
 
-    __device__ __host__ inline BlockReduce(int batch = 0) : batch(batch) {}
+    inline BlockReduce(int batch = 0) : batch(batch) {}
 
     template <bool is_device, typename dummy = void> struct sum { T operator()(const T &value, bool, int, bool) { return value; } };
 
     template <typename dummy> struct sum<true, dummy> {
-      __device__ inline T operator()(const T &value_, bool pipeline, int batch, bool all_sum)
+       inline T operator()(const T &value_, bool pipeline, int batch, bool all_sum)
       {
         static __shared__ typename block_reduce_t::TempStorage storage[batch_size];
         block_reduce_t block_reduce(storage[batch]);
@@ -76,12 +76,12 @@ namespace quda {
       }
     };
 
-    template <bool pipeline = false> __device__ __host__ inline T Sum(const T &value)
+    template <bool pipeline = false> inline T Sum(const T &value)
     {
       return target::dispatch<sum>(value, pipeline, batch, false);
     }
 
-    template <bool pipeline = false> __device__ __host__ inline T AllSum(const T &value)
+    template <bool pipeline = false> inline T AllSum(const T &value)
     {
       return target::dispatch<sum>(value, pipeline, batch, true);
     }

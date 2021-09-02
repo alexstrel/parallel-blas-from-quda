@@ -24,7 +24,7 @@ struct AlignedAllocator {
 
      std::size_t  max_size() const throw() { return size_t(-1) / sizeof(Tp); }
 
-     [[nodiscard]] Tp* allocate(std::size_t n){
+     Tp* allocate(std::size_t n){
 
        Tp* ptr = nullptr;
        auto err = cudaMallocManaged((void **)&ptr,n*sizeof(Tp));

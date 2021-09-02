@@ -19,7 +19,7 @@ namespace quda {
   };
 
   template <template <typename> class Transformer, typename Arg, bool grid_stride = true>
-  __forceinline__ __device__ void Reduction2D_impl(const Arg &arg)
+  inline void Reduction2D_impl(const Arg &arg)
   {
     using reduce_t = typename Transformer<Arg>::reduce_t;
     Transformer<Arg> t(arg);
@@ -52,7 +52,7 @@ namespace quda {
 
 
   template <template <typename> class Transformer, typename Arg, bool grid_stride = true>
-  __forceinline__ __device__ void MultiReduction_impl(const Arg &arg)
+  inline void MultiReduction_impl(const Arg &arg)
   {
     using reduce_t = typename Transformer<Arg>::reduce_t;
     Transformer<Arg> t(arg);
