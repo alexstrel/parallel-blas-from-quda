@@ -12,7 +12,7 @@ using device_reduce_t = doubledouble;
 using device_reduce_t = double;
 #endif
 
-#ifdef HETEROGENEOUS_ATOMIC
+#if defined (HETEROGENEOUS_ATOMIC) && !defined(__NVCOMPILER_CUDA__)
 #include <cuda/std/atomic>
 using count_t = cuda::atomic<unsigned int, cuda::thread_scope_device>;
 #else
@@ -68,7 +68,7 @@ namespace quda
   private:
     const int n_reduce; // number of reductions of length n_item
     bool reset = false; // reset the counter post completion (required for multiple calls with the same arg instance
-#ifdef HETEROGENEOUS_ATOMIC
+#if defined (HETEROGENEOUS_ATOMIC) && !defined(__NVCOMPILER_CUDA__)
     using system_atomic_t = typename atomic_type<T>::type;
     static constexpr int n_item = sizeof(T) / sizeof(system_atomic_t);
     cuda::atomic<T, cuda::thread_scope_device> *partial;
@@ -108,7 +108,7 @@ namespace quda
         errorQuda("Requested reduction requires a larger buffer %lu than allocated %lu", reduce_size,
                   reducer::buffer_size());
 
-#ifdef HETEROGENEOUS_ATOMIC
+#if defined (HETEROGENEOUS_ATOMIC) && !defined(__NVCOMPILER_CUDA__)
       if (!commAsyncReduction()) {
         // initialize the result buffer so we can test for completion
         for (int i = 0; i < n_reduce * n_item; i++) {
@@ -133,7 +133,7 @@ namespace quda
        @param[out] result The reduction result is copied here
        @param[in] stream The stream on which we the reduction is being done
      */
-#ifdef HETEROGENEOUS_ATOMIC
+#if defined (HETEROGENEOUS_ATOMIC) && !defined(__NVCOMPILER_CUDA__)
     template <typename host_t, typename device_t = host_t>
     void complete(std::vector<host_t> &result, const qudaStream_t = device::get_default_stream())
     {
@@ -182,7 +182,7 @@ namespace quda
 #endif
   };
 
-#ifdef HETEROGENEOUS_ATOMIC
+#if defined (HETEROGENEOUS_ATOMIC) && !defined(__NVCOMPILER_CUDA__)
     /**
        @brief Generic reduction function that reduces block-distributed
        data "in" per thread to a single value.  This is the
