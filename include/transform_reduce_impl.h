@@ -10,12 +10,9 @@ namespace quda
 {
 
   /**
-     Trait that returns the correct comm reduce class for a given reducer :: TODO need to be external
+     Trait that returns the correct comm reduce class for a given reducer :: custom global reducers moved to global_reducer.h
    */
   template <typename T, typename reducer> struct get_comm_reducer_t { };
-  template <> struct get_comm_reducer_t<double, plus<double>> { using type = comm_reduce_sum<double>; };
-  //NEW
-  template <> struct get_comm_reducer_t<float,  plus<float>>  { using type = comm_reduce_sum<float> ; };
 
   template <typename policy_t, typename reduce_t, int n_batch_, typename reducer, typename transformer>
   class TransformReduce : TunableMultiReduction<1>

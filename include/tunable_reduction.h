@@ -20,24 +20,6 @@ namespace quda {
     void operator()(std::vector<T> &) { }
   };
 
-  /** comm reducer for doing summation inter-process reduction */
-  template <typename T> struct comm_reduce_sum {
-    // FIXME - this will break when we have non-double reduction types, e.g., double-double on the host
-    void operator()(std::vector<T> &v) { comm_allreduce_array(reinterpret_cast<double*>(v.data()), v.size() * sizeof(T) / sizeof(double)); }
-  };
-
-  /** comm reducer for doing max inter-process reduction */
-  template <typename T> struct comm_reduce_max {
-    // FIXME - this will break when we have non-double reduction types, e.g., double-double on the host
-    void operator()(std::vector<T> &v) { comm_allreduce_max_array(reinterpret_cast<double*>(v.data()), v.size() * sizeof(T) / sizeof(double)); }
-  };
-
-  /** comm reducer for doing min inter-process reduction */
-  template <typename T> struct comm_reduce_min {
-    // FIXME - this will break when we have non-double reduction types, e.g., double-double on the host
-    void operator()(std::vector<T> &v) { comm_allreduce_min_array(reinterpret_cast<double*>(v.data()), v.size() * sizeof(T) / sizeof(double)); }
-  };
-
   /**
      @brief This derived tunable class is for reduction kernels, and
      partners the Reduction2D kernel.  The x threads will
@@ -94,7 +76,7 @@ namespace quda {
       }
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_device(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
       arg.launch_error = launch<device::max_reduce_block_size<block_size_y>(), Functor>(arg, tp, stream);
@@ -105,7 +87,7 @@ namespace quda {
       }
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_device(T &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
       std::vector<T> result_(1);
@@ -113,7 +95,7 @@ namespace quda {
       result = result_[0];
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_host(std::vector<T> &result, const TuneParam &, const qudaStream_t &, Arg &arg)
     {
       using reduce_t = typename Functor<Arg>::reduce_t;
@@ -132,7 +114,7 @@ namespace quda {
       if (!activeTuning() && commGlobalReduction()) CommReducer()(result);
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_host(T &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
       std::vector<T> result_(1);
@@ -140,7 +122,7 @@ namespace quda {
       result = result_[0];
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, bool enable_host = false, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, bool enable_host = false, typename Arg>
     std::enable_if_t<!enable_host, void>
       launch(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
@@ -151,7 +133,7 @@ namespace quda {
       }
     }
 
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, bool enable_host = false, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, bool enable_host = false, typename Arg>
     std::enable_if_t<enable_host, void>
       launch(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
@@ -170,7 +152,7 @@ namespace quda {
        @param[in] arg Kernel argument struct
        @param[in] param Constant kernel meta data
      */
-  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+  template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch(T &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
       std::vector<T> result_(1);
@@ -269,7 +251,7 @@ namespace quda {
       }
     }
 
-    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_device(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
       arg.launch_error = launch<device::max_multi_reduce_block_size<block_size_y>(), Functor>(arg, tp, stream);
@@ -280,7 +262,7 @@ namespace quda {
       }
     }
 
-    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, typename Arg>
+    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, typename Arg>
     void launch_host(std::vector<T> &result, const TuneParam &, const qudaStream_t &, Arg &arg)
     {
       using reduce_t = typename Functor<Arg>::reduce_t;
@@ -301,7 +283,7 @@ namespace quda {
       if (!activeTuning() && commGlobalReduction()) CommReducer()(result);
     }
 
-    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, bool enable_host = false, typename Arg>
+    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, bool enable_host = false, typename Arg>
     std::enable_if_t<!enable_host, void>
     launch(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {
@@ -312,7 +294,7 @@ namespace quda {
       }
     }
 
-    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_sum<T>, bool enable_host, typename Arg>
+    template <template <typename> class Functor, typename T, typename CommReducer = comm_reduce_null<T>, bool enable_host, typename Arg>
     std::enable_if_t<enable_host, void>
     launch(std::vector<T> &result, const TuneParam &tp, const qudaStream_t &stream, Arg &arg)
     {

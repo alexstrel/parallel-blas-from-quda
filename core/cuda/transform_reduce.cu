@@ -1,7 +1,9 @@
 #include <transform_reduce_impl.h>
-//implementations:
+//target specific implementations:
 #include <reducer.h>
 #include <transformer.h>
+//generic implementations
+#include "../generic/include/global_reducer.h"
 
 namespace quda
 {
