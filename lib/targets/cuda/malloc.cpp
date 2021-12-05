@@ -8,7 +8,6 @@
 #include <device.h>
 //#include <shmem_helper.cuh>
 
-
 #ifdef QUDA_BACKWARDSCPP
 #include "backward.hpp"
 #endif
@@ -174,8 +173,7 @@ namespace quda
         warningQuda("Using managed memory for CUDA allocations");
         managed = true;
 
-        if (!device::managed_memory_supported())
-          warningQuda("Target device does not report supporting managed memory");
+        if (!device::managed_memory_supported()) warningQuda("Target device does not report supporting managed memory");
       }
 
       init = true;
@@ -377,7 +375,7 @@ namespace quda
     }
     track_malloc(SHMEM, a, ptr);
 #ifdef HOST_DEBUG
-    qudaMemset(ptr, 0xff, size);
+    cudaMemset(ptr, 0xff, size);
 #endif
     return ptr;
   }
@@ -590,8 +588,7 @@ namespace quda
   {
     auto error = cudaHostRegister(ptr, bytes, cudaHostRegisterDefault);
     if (error != cudaSuccess) {
-      errorQuda("cudaHostRegister failed with error %s (%s:%d in %s()",
-                cudaGetErrorString(error), file, line, func);
+      errorQuda("cudaHostRegister failed with error %s (%s:%d in %s()", cudaGetErrorString(error), file, line, func);
     }
   }
 
@@ -599,8 +596,7 @@ namespace quda
   {
     auto error = cudaHostUnregister(ptr);
     if (error != cudaSuccess) {
-      errorQuda("cudaHostUnregister failed with error %s (%s:%d in %s()",
-                cudaGetErrorString(error), file, line, func);
+      errorQuda("cudaHostUnregister failed with error %s (%s:%d in %s()", cudaGetErrorString(error), file, line, func);
     }
   }
 
