@@ -73,6 +73,11 @@ namespace quda {
        reductions with the host
      */
     //qudaEvent_t &get_event();
+
+    //these functions were imported from blas_quda.cu 
+    void init();
+    void destroy();
+
   } // namespace reducer
 
   constexpr int max_n_reduce() { return QUDA_MAX_MULTI_REDUCE; }

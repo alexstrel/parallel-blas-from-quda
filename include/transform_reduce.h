@@ -13,11 +13,6 @@
 
 namespace quda
 {
-  namespace reducer {
-    void init();
-    void destroy();
-  }
-
   /**
      @brief QUDA implementation providing thrust::transform_reduce like
      functionality.  Improves upon thrust's implementation since a
