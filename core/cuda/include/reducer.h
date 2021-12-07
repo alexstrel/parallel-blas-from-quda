@@ -18,6 +18,13 @@ namespace quda {
     __device__ __host__ T operator()(T a, T b) const { return a < b ? a : b; }
   };
 
+  template<typename T> struct cplus{
+    static constexpr bool do_sum = true;
+    __host__ __device__ quda::complex<T> operator()(quda::complex<T> a, quda::complex<T> b) const
+    { return quda::complex<T>(a.real()+b.real(), a.imag()+b.imag()); }
+  };
+
+
   template<typename ReduceType, typename Float> struct square_ {
     square_(ReduceType = 1.0) { }
     __host__ __device__ inline ReduceType operator()(const quda::complex<Float> &x) const
