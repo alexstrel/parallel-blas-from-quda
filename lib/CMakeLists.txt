@@ -175,6 +175,7 @@ endif()
 
 add_subdirectory(targets/generic)
 target_include_directories(quda PRIVATE ../include/targets/generic)
+target_include_directories(quda PRIVATE ../core/generic/include)
 
 #add_subdirectory(interface)
 

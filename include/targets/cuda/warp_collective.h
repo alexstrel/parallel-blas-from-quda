@@ -2,12 +2,15 @@
 
 #include <target_device.h>
 
-namespace quda {
+namespace quda
+{
 
-  template <bool is_device> struct warp_combine_impl { template <typename T> T operator()(T &x, int) { return x; } };
+  template <bool is_device> struct warp_combine_impl {
+    template <typename T> T operator()(T &x, int) { return x; }
+  };
 
   template <> struct warp_combine_impl<true> {
-    template <typename T> inline T operator()(T &x, int warp_split)
+    template <typename T> __device__ inline T operator()(T &x, int warp_split)
     {
       constexpr int warp_size = device::warp_size();
       if (warp_split > 1) {
@@ -26,9 +29,9 @@ namespace quda {
     }
   };
 
-  template <int warp_split, typename T> inline T warp_combine(T &x)
+  template <int warp_split, typename T> __device__ __host__ inline T warp_combine(T &x)
   {
     return target::dispatch<warp_combine_impl>(x, warp_split);
   }
 
-}
+} // namespace quda

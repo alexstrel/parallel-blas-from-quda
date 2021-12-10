@@ -3,11 +3,18 @@
 #include <reduce_helper.h>
 #include <transform_reduce.h>
 #include <tunable_reduction.h>
-#include <kernels/transform_reduce.hpp>
+//#if defined(__CUDACC__) ||  defined(_NVHPC_CUDA) || (defined(__clang__) && defined(__CUDA__))
+#include <kernels/transform_reduce.cuh>
+//#endif
 #include <array>
 
 namespace quda
 {
+
+  /**
+     Trait that returns the correct comm reduce class for a given reducer :: custom global reducers moved to global_reducer.h
+   */
+  template <typename T, typename reducer> struct get_comm_reducer_t { };
 
   template <typename policy_t, typename reduce_t, int n_batch_, typename reducer, typename transformer>
   class TransformReduce : TunableMultiReduction<1>
@@ -50,7 +57,8 @@ namespace quda
       TuneParam tp = tuneLaunch(*this, getTuning(), getVerbosity());
       //
       Arg arg(n_items, init, r, h);
-      launch<transform_reducer, true>(result, tp, stream, arg);
+      //launch<transform_reducer, true>(result, tp, stream, arg);
+      launch<transform_reducer, reduce_t, typename get_comm_reducer_t<reduce_t, reducer>::type, true>(result, tp, stream, arg);
     }
 
     long long bytes() const { return n_batch_ * n_items * sizeof(reduce_t); }//need to deduce from h

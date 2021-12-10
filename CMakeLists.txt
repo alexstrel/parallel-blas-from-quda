@@ -277,7 +277,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
     "-O3 -w ${CXX_OPT} "
     CACHE STRING "Flags used by the C++ compiler during release builds.")
 set(CMAKE_CXX_FLAGS_HOSTDEBUG
-	"-g -Wall -Wextra -Minfo"
+    "-Wall -Wextra -g"
     CACHE STRING "Flags used by the C++ compiler during host-debug builds.")
 set(CMAKE_CXX_FLAGS_DEBUG
     "-Wall -Wextra -g -fno-inline"
@@ -529,6 +529,7 @@ include(CTest)
 # add tests, utils, reference, and quda library
 add_subdirectory(lib)
 add_subdirectory(core/cuda)
-target_include_directories(quda PRIVATE core/cuda/include)
+#add_subdirectory(core/generic)
+target_include_directories(quda PRIVATE core/generic/include)
 #add_subdirectory(tests)
 #add_subdirectory(doc)
