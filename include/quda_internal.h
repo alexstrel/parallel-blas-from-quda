@@ -72,7 +72,7 @@ namespace quda {
        @return reference to the event used for synchronizing
        reductions with the host
      */
-    //qudaEvent_t &get_event();
+    qudaEvent_t &get_event();
 
     //these functions were imported from blas_quda.cu 
     void init();
