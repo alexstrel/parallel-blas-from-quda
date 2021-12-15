@@ -62,8 +62,8 @@ namespace quda
     long long bytes() const { return n_batch_ * n_items * sizeof(reduce_t); }//need to deduce from h
   };
 
-  template <typename policy_t, typename reduce_t, typename count_t, typename reducer, typename transformer>
-  reduce_t transform_reduce(policy_t &policy, count_t begin_it, count_t end_it, reduce_t init, reducer r, transformer h)
+  template <typename policy_t, typename reduce_t, typename iter_t, typename reducer, typename transformer>
+  reduce_t transform_reduce(policy_t &policy, iter_t begin_it, iter_t end_it, reduce_t init, reducer r, transformer h)
   {
     constexpr int n_batch = 1;
     std::vector<reduce_t> result = {0.0};
@@ -76,8 +76,8 @@ namespace quda
     return result[0];
   }  
 
-  template <typename policy_t, typename reduce_t, typename count_t, typename reducer, typename transformer>
-  reduce_t transform_reduce(policy_t &policy, count_t begin_it1, count_t end_it1, count_t begin_it2, reduce_t init, reducer r, transformer h)
+  template <typename policy_t, typename reduce_t, typename iter_t, typename reducer, typename transformer>
+  reduce_t transform_reduce(policy_t &policy, iter_t begin_it1, iter_t end_it1, iter_t begin_it2, reduce_t init, reducer r, transformer h)
   {
     constexpr int n_batch = 1;
     std::vector<reduce_t> result = {0.0};
