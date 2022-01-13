@@ -18,7 +18,7 @@ namespace quda {
     transformer h;
 
     TransformReduceArg(int n_items, reduce_t init_value, reducer r, transformer h) :
-      ReduceArg<reduce_t>(dim3(n_items, n_batch_, 1), n_batch_),
+      ReduceArg<reduce_t>(dim3(n_items, 1, n_batch_), n_batch_),
       n_items(n_items),
       n_batch(n_batch_),
       init_value(init_value),
@@ -37,6 +37,7 @@ namespace quda {
   template <typename Arg> struct transform_reducer {
     using count_t = decltype(Arg::n_items);
     using reduce_t = decltype(Arg::init_value);
+    using reducer_t = typename Arg::reducer;
 
     const Arg &arg;
     static constexpr const char *filename() { return KERNEL_FILE; }
@@ -46,7 +47,7 @@ namespace quda {
 
     __device__ __host__ inline reduce_t operator()(reduce_t a, reduce_t b) const { return arg.r(a, b); }
 
-    __device__ __host__ inline reduce_t operator()(reduce_t &value, count_t i, int j, int)//j is a batch indx
+    __device__ __host__ inline reduce_t operator()(reduce_t &value, count_t i, int, int j)//j is a batch indx
     {
       auto t = arg.h(i, j);
       return arg.r(t, value);
