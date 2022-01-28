@@ -22,4 +22,7 @@ namespace quda
 
   template quda::complex<float> transform_reduce<QudaFieldLocation, quda::complex<float>, iter_c32_t, cplus<float>, caxpyDot<float>>(
       QudaFieldLocation&, iter_c32_t, iter_c32_t, quda::complex<float>, cplus<float>, caxpyDot<float>);
+
+  template quda::complex<float> transform_reduce<QudaFieldLocation, quda::complex<float>, iter_c32_t, cplus<float>, cDot<float>>(
+      QudaFieldLocation&, iter_c32_t, iter_c32_t, quda::complex<float>, cplus<float>, cDot<float>);
 } // namespace quda
