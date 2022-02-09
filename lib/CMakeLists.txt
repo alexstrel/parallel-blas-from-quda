@@ -24,6 +24,7 @@ endif()
 
 set (QUDA_OBJS
   # cmake-format: sortable
+  interface_quda.cpp
   timer.cpp
   util_quda.cpp
   comm_common.cpp communicator_stack.cpp
