@@ -26,6 +26,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <quda_arch.h> // for double2 / float2
+
 // We need this to make sure code inside quda:: that calls sqrt() using real numbers
 // doesn't try to call the complex sqrt, but the standard sqrt
 namespace quda
