@@ -5,23 +5,47 @@ namespace quda {
 
   template <typename T> struct plus {
     static constexpr bool do_sum = true;
-    __device__ __host__ T operator()(T a, T b) const { return a + b; }
+    using reduce_t = T;
+    using reducer_t = plus<T>;
+    template <typename U> static inline void comm_reduce(std::vector<U> &a) { comm_allreduce_sum(a); }
+    __device__ __host__ static inline T init() { return zero<T>(); }
+    __device__ __host__ static inline T apply(T a, T b) { return a + b; }
+    __device__ __host__ inline T operator()(T a, T b) const { return apply(a, b); }
+ 
   };
 
   template <typename T> struct maximum {
     static constexpr bool do_sum = false;
-    __device__ __host__ T operator()(T a, T b) const { return a > b ? a : b; }
+    using reduce_t = T;
+    using reducer_t = maximum<T>;
+    template <typename U> static inline void comm_reduce(std::vector<U> &a) { comm_allreduce_max(a); }
+    __device__ __host__ static inline T init() { return low<T>::value(); }
+    __device__ __host__ static inline T apply(T a, T b) { return max(a, b); }
+    __device__ __host__ inline T operator()(T a, T b) const { return apply(a, b); }
   };
 
   template <typename T> struct minimum {
     static constexpr bool do_sum = false;
-    __device__ __host__ T operator()(T a, T b) const { return a < b ? a : b; }
+    using reduce_t = T;
+    using reducer_t = minimum<T>;
+    template <typename U> static inline void comm_reduce(std::vector<U> &a) { comm_allreduce_min(a); }
+    __device__ __host__ static inline T init() { return high<T>::value(); }
+    __device__ __host__ static inline T apply(T a, T b) { return min(a, b); }
+    __device__ __host__ inline T operator()(T a, T b) const { return apply(a, b); }
   };
+  
+  
 
   template<typename T> struct cplus{
     static constexpr bool do_sum = true;
-    __host__ __device__ quda::complex<T> operator()(quda::complex<T> a, quda::complex<T> b) const
-    { return quda::complex<T>(a.real()+b.real(), a.imag()+b.imag()); }
+    using reduce_t = quda::complex<T>;
+    using reducer_t = plus<quda::complex<T>>;
+    
+    template <typename U> static inline void comm_reduce(std::vector<quda::complex<U>> &a) { comm_allreduce_sum(a); }
+    __device__ __host__ static inline quda::complex<T> init() { return zero<quda::complex<T>>(); }
+    __device__ __host__ static inline quda::complex<T> apply(quda::complex<T> a, quda::complex<T> b) { return quda::complex<T>(a.real()+b.real(), a.imag()+b.imag()); }
+    __device__ __host__ inline quda::complex<T> operator()(quda::complex<T> a, quda::complex<T> b) const { return apply(a, b); }
+    
   };
 
 
@@ -30,6 +54,7 @@ namespace quda {
     __host__ __device__ inline ReduceType operator()(const quda::complex<Float> &x) const
     { return static_cast<ReduceType>(norm(x)); }
   };
+  
 
   template <typename ReduceType> struct square_<ReduceType, int8_t> {
     const ReduceType scale;

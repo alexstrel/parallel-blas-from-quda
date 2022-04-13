@@ -175,7 +175,7 @@ void initQUDABLAS(int argc, char **argv) {
   // initalize the memory pool allocators
   quda::pool::init();
 
-  quda::reducer::init();
+  //quda::reducer::init();
   std::cout << "..done." << std::endl;   
 
   profileInit.TPSTOP(QUDA_PROFILE_INIT);
