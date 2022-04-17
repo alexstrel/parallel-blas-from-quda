@@ -11,18 +11,17 @@ namespace quda
   using iter_c32_t = decltype(std::vector<quda::complex<float>, AlignedAllocator<quda::complex<float> >>().begin()); 
 
   // explicit instantiation list for transform_reduce
-  template float transform_reduce<QudaFieldLocation, float, int, plus<float>, identity<float>>(
-    QudaFieldLocation&, int, int, float, plus<float>, identity<float>);
+  template float transform_reduce<QudaFieldLocation, plus<float>, float, int, identity<float>>(
+    QudaFieldLocation&, int, int, identity<float>);
 
-  template float transform_reduce<QudaFieldLocation, float, iter_f32_t, plus<float>, identity<float>>(
-      QudaFieldLocation&, iter_f32_t, iter_f32_t, float, plus<float>, identity<float>);   
+  template float transform_reduce<QudaFieldLocation, plus<float>, float, iter_f32_t, identity<float>>(
+      QudaFieldLocation&, iter_f32_t, iter_f32_t, identity<float>);   
       
-  template float transform_reduce<QudaFieldLocation, float, iter_f32_t, plus<float>, axpyDot<float>>(
-      QudaFieldLocation&, iter_f32_t, iter_f32_t, float, plus<float>, axpyDot<float>);   
+  template float transform_reduce<QudaFieldLocation, plus<float>, float, iter_f32_t, axpyDot<float>>(
+      QudaFieldLocation&, iter_f32_t, iter_f32_t, axpyDot<float>);   
+  template quda::complex<float> transform_reduce<QudaFieldLocation, cplus<float>, quda::complex<float>, iter_c32_t, caxpyDot<float>>(
+      QudaFieldLocation&, iter_c32_t, iter_c32_t, caxpyDot<float>);
 
-  template quda::complex<float> transform_reduce<QudaFieldLocation, quda::complex<float>, iter_c32_t, cplus<float>, caxpyDot<float>>(
-      QudaFieldLocation&, iter_c32_t, iter_c32_t, quda::complex<float>, cplus<float>, caxpyDot<float>);
-
-  template quda::complex<float> transform_reduce<QudaFieldLocation, quda::complex<float>, iter_c32_t, cplus<float>, cDot<float>>(
-      QudaFieldLocation&, iter_c32_t, iter_c32_t, quda::complex<float>, cplus<float>, cDot<float>);
+  template quda::complex<float> transform_reduce<QudaFieldLocation, cplus<float>, quda::complex<float>, iter_c32_t, cDot<float>>(
+      QudaFieldLocation&, iter_c32_t, iter_c32_t, cDot<float>);
 } // namespace quda

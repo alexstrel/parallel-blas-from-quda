@@ -15,6 +15,9 @@
 #include <transform_reduce.h>
 #include <iterators.h>
 //
+#include <comm_quda.h>
+#include <float_vector.h>
+//
 #include <reducer.h>
 #include <transformer.h>
 
