@@ -21,7 +21,6 @@
 
 #define TEX_ALIGN_REQ (512*2) //Fermi, factor 2 comes from even/odd
 #define ALIGNMENT_ADJUST(n) ( (n+TEX_ALIGN_REQ-1)/TEX_ALIGN_REQ*TEX_ALIGN_REQ)
-//#include <quda.h>
 #include <util_quda.h>
 #include <malloc_quda.h>
 #include <object.h>
