@@ -2,6 +2,7 @@
 
 #include <quda_internal.h>
 //NEW
+#include <comm_quda.h>
 #include <float_vector.h>
 #include <reducer.h>
 

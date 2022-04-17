@@ -1,6 +1,8 @@
 #pragma once
 
 #include <target_device.h>
+#include <comm_quda.h>
+#include <float_vector.h>
 #include <reducer.h> //WARNING : this is now an external header!
 
 /**

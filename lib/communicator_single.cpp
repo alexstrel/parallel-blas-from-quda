@@ -83,6 +83,8 @@ namespace quda
 
   void Communicator::comm_allreduce_sum_array(double *, size_t) { }
 
+  void Communicator::comm_allreduce_sum_array(float *, size_t) { }
+
   void Communicator::comm_allreduce_max_array(double *, size_t) { }
 
   void Communicator::comm_allreduce_min_array(double *, size_t) { }

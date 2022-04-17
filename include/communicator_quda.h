@@ -730,6 +730,8 @@ namespace quda
 
   void comm_allreduce_sum_array(double *data, size_t size);
 
+  void comm_allreduce_sum_array(float *data, size_t size);
+
   void comm_allreduce_max_array(double *data, size_t size);
 
   void comm_allreduce_min_array(double *data, size_t size);

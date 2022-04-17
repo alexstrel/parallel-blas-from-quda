@@ -1,10 +1,12 @@
 #pragma once
+#include <comm_quda.h>
+#include <float_vector.h>
+#include <array>
 #include <iterators.h>
 #include <reduce_helper.h>
 #include <transform_reduce.h>
 #include <tunable_reduction.h>
 #include <kernels/transform_reduce.cuh>
-#include <array>
 
 namespace quda
 {

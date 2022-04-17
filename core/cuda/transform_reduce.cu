@@ -13,17 +13,15 @@ namespace quda
   // explicit instantiation list for transform_reduce
   template float transform_reduce<QudaFieldLocation, plus<float>, float, int, identity<float>>(
     QudaFieldLocation&, int, int, identity<float>);
-#if 0
+
   template float transform_reduce<QudaFieldLocation, plus<float>, float, iter_f32_t, identity<float>>(
       QudaFieldLocation&, iter_f32_t, iter_f32_t, identity<float>);   
       
   template float transform_reduce<QudaFieldLocation, plus<float>, float, iter_f32_t, axpyDot<float>>(
       QudaFieldLocation&, iter_f32_t, iter_f32_t, axpyDot<float>);   
-
   template quda::complex<float> transform_reduce<QudaFieldLocation, cplus<float>, quda::complex<float>, iter_c32_t, caxpyDot<float>>(
       QudaFieldLocation&, iter_c32_t, iter_c32_t, caxpyDot<float>);
 
   template quda::complex<float> transform_reduce<QudaFieldLocation, cplus<float>, quda::complex<float>, iter_c32_t, cDot<float>>(
       QudaFieldLocation&, iter_c32_t, iter_c32_t, cDot<float>);
-#endif
 } // namespace quda

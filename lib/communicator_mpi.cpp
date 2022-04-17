@@ -290,6 +290,26 @@ namespace quda
       for (size_t i = 0; i < size; i++) { data[i] = deterministic_reduce(recv_trans.data() + i * n, n); }
     }
   }
+/////
+  void Communicator::comm_allreduce_sum_array(float *data, size_t size)
+  {
+    if (!comm_deterministic_reduce()) {
+      std::vector<float> recvbuf(size);
+      MPI_CHECK(MPI_Allreduce(data, recvbuf.data(), size, MPI_FLOAT, MPI_SUM, MPI_COMM_HANDLE));
+      memcpy(data, recvbuf.data(), size * sizeof(double));
+    } else {
+      size_t n = comm_size();
+      std::vector<float> recv_buf(size * n);
+      MPI_CHECK(MPI_Allgather(data, size, MPI_FLOAT, recv_buf.data(), size, MPI_FLOAT, MPI_COMM_HANDLE));
+      std::vector<float> recv_trans(size * n);
+      for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < size; j++) { recv_trans[j * n + i] = recv_buf[i * size + j]; }
+      }
+
+      for (size_t i = 0; i < size; i++) { data[i] = deterministic_reduce(recv_trans.data() + i * n, n); }
+    }
+  }
+
 
   void Communicator::comm_allreduce_max_array(double *data, size_t size)
   {
