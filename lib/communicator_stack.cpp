@@ -176,24 +176,21 @@ namespace quda
   {
     get_current_communicator().comm_allreduce_sum_array(data, size);
   }
-//??
+
   void comm_allreduce_sum_array(float *data, size_t size)
   {
     get_current_communicator().comm_allreduce_sum_array(data, size);
   }
-
 
   template <> void comm_allreduce_sum<std::vector<double>>(std::vector<double> &a)
   {
     comm_allreduce_sum_array(a.data(), a.size());
   }
 
-//??
   template <> void comm_allreduce_sum<std::vector<float>>(std::vector<float> &a)
   {
     comm_allreduce_sum_array(a.data(), a.size());
   }
-
 
   template <> void comm_allreduce_sum<std::vector<double2>>(std::vector<double2> &a)
   {
@@ -204,12 +201,12 @@ namespace quda
   {
     comm_allreduce_sum_array(reinterpret_cast<double *>(a.data()), 2 * a.size());
   }
-//??
+
   template <> void comm_allreduce_sum<std::vector<std::complex<float>>>(std::vector<std::complex<float>> &a)
   {
     comm_allreduce_sum_array(reinterpret_cast<float *>(a.data()), 2 * a.size());
   }
-//??
+
   template <> void comm_allreduce_sum<std::vector<quda::complex<float>>>(std::vector<quda::complex<float>> &a)
   {
     comm_allreduce_sum_array(reinterpret_cast<float *>(a.data()), 2 * a.size());

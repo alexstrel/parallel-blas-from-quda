@@ -35,7 +35,6 @@ namespace quda
   Topology *comm_default_topology(void);
 
   // routines related to direct peer-2-peer access
-  //!void comm_set_neighbor_ranks(Topology *topo = NULL);
   void comm_set_neighbor_ranks(Topology *topo);
   int comm_neighbor_rank(int dir, int dim);
 
@@ -147,7 +146,6 @@ namespace quda
      @param comm_dim_override Optional override for partitioning
      @return String specifying comm partitioning
   */
-  //!const char *comm_dim_partitioned_string(const int *comm_dim_override = 0);
   const char *comm_dim_partitioned_string(const int *comm_dim_override);
 
   /**
@@ -168,7 +166,6 @@ namespace quda
      @brief Initialize the communications, implemented in comm_single.cpp, comm_qmp.cpp, and comm_mpi.cpp
   */
   void comm_init(int ndim, const int *dims, QudaCommsMap rank_from_coords, void *map_data,
-  //!               bool user_set_comm_handle = false, void *user_comm = nullptr);
   		    bool user_set_comm_handle, void *user_comm);
 
   /**
