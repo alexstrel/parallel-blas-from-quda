@@ -16,14 +16,12 @@ namespace quda {
     int n_items;
     int n_batch;
     reduce_t init_value;
-    reducer r;
     transformer h;
 
-    TransformReduceArg(int n_items, reduce_t init_value, reducer r, transformer h) :
+    TransformReduceArg(int n_items, reduce_t init_value, transformer h) :
       ReduceArg<reduce_t>(dim3(n_items, 1, n_batch_), n_batch_),
       n_items(n_items),
       n_batch(n_batch_),
-      r(r),	
       h(h)      
     {
       if (n_batch > n_batch_max) errorQuda("Requested batch %d greater than max supported %d", n_batch, n_batch_max);
@@ -45,8 +43,7 @@ namespace quda {
     __device__ __host__ inline reduce_t operator()(reduce_t &value, count_t i, int, int j)//j is a batch indx
     {
       auto t = arg.h(i, j);
-      //return operator()(t, value);
-      return arg.r(t, value);
+      return operator()(t, value);
     }
   };
   

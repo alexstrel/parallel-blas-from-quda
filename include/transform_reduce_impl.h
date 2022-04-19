@@ -51,7 +51,7 @@ namespace quda
     {
       TuneParam tp = tuneLaunch(*this, getTuning(), getVerbosity());
       //
-      Arg arg(n_items, init, r, h);
+      Arg arg(n_items, init, h);
       //
       launch<transform_reducer, true>(result, tp, stream, arg);
     }
