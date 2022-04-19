@@ -30,7 +30,7 @@ namespace quda
      to remain inside the thread block and this dimension is
      contracted in the reduction.
 
-     @tparam Transformer Kernel functor that defines the kernel
+     @tparam Transformer Kernel functor that defines the kernel (e.g., transform_reducer from include/kernels/transform_reduce.cuh)
      @tparam Arg Kernel argument struct that set any required meta
      data for the kernel
      @tparam grid_stride Whether the kernel does multiple computations
@@ -46,6 +46,7 @@ namespace quda
     auto idx = threadIdx.x + blockIdx.x * blockDim.x;
     auto j = threadIdx.y;
 
+    //reduce_t value = t.init(arg.init_value);
     reduce_t value = t.init();
 
     while (idx < arg.threads.x) {
