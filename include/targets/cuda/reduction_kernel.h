@@ -30,7 +30,7 @@ namespace quda
      to remain inside the thread block and this dimension is
      contracted in the reduction.
 
-     @tparam Transformer Kernel functor that defines the kernel
+     @tparam Transformer Kernel functor that defines the kernel (e.g., transform_reducer from include/kernels/transform_reduce.cuh)
      @tparam Arg Kernel argument struct that set any required meta
      data for the kernel
      @tparam grid_stride Whether the kernel does multiple computations
@@ -38,7 +38,7 @@ namespace quda
      @param[in] arg Kernel argument
    */
   template <template <typename> class Transformer, typename Arg, bool grid_stride = true>
-  __forceinline__ __device__ void Reduction2D_impl(const Arg &arg)
+  inline void Reduction2D_impl(const Arg &arg)
   {
     using reduce_t = typename Transformer<Arg>::reduce_t;
     Transformer<Arg> t(arg);
@@ -46,7 +46,8 @@ namespace quda
     auto idx = threadIdx.x + blockIdx.x * blockDim.x;
     auto j = threadIdx.y;
 
-    reduce_t value = arg.init();
+    //reduce_t value = t.init(arg.init_value);
+    reduce_t value = t.init();
 
     while (idx < arg.threads.x) {
       value = t(value, idx, j);
@@ -99,10 +100,10 @@ namespace quda
   /**
      @brief MultiReduction_impl is the implementation of the generic
      multi-reduction kernel.  Functors that utilize this kernel have
-     three parallelization dimensions.  The y thread dimenion is a
-     batch dimension that is not contracted in the reduction.  The z
-     thread dimension is constrained to remain inside the thread block
-     and this dimension is contracted in the reduction.
+     three parallelization dimensions.  The y thread dimension is
+     constrained to remain inside the thread block and this dimension
+     is contracted in the reduction.  The z thread dimension is a
+     batch dimension that is not contracted in the reduction.
 
      @tparam Functor Kernel functor that defines the kernel
      @tparam Arg Kernel argument struct that set any required meta
@@ -112,21 +113,21 @@ namespace quda
      @param[in] arg Kernel argument
    */
   template <template <typename> class Functor, typename Arg, bool grid_stride = true>
-  __forceinline__ __device__ void MultiReduction_impl(const Arg &arg)
+  inline void MultiReduction_impl(const Arg &arg)
   {
     using reduce_t = typename Functor<Arg>::reduce_t;
     Functor<Arg> t(arg);
 
     auto idx = threadIdx.x + blockIdx.x * blockDim.x;
-    auto j = threadIdx.y + blockIdx.y * blockDim.y;
-    auto k = threadIdx.z;
+    auto k = threadIdx.y;
+    auto j = threadIdx.z + blockIdx.z * blockDim.z;
 
-    if (j >= arg.threads.y) return;
+    if (j >= arg.threads.z) return;
 
-    reduce_t value = arg.init();
+    reduce_t value = t.init();
 
     while (idx < arg.threads.x) {
-      value = t(value, idx, j, k);
+      value = t(value, idx, k, j);
       if (grid_stride)
         idx += blockDim.x * gridDim.x;
       else

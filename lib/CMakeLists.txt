@@ -24,6 +24,7 @@ endif()
 
 set (QUDA_OBJS
   # cmake-format: sortable
+  interface_quda.cpp
   timer.cpp
   util_quda.cpp
   comm_common.cpp communicator_stack.cpp
@@ -175,7 +176,6 @@ endif()
 
 add_subdirectory(targets/generic)
 target_include_directories(quda PRIVATE ../include/targets/generic)
-target_include_directories(quda PRIVATE ../core/generic/include)
 
 #add_subdirectory(interface)
 

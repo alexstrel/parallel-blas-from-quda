@@ -1,32 +1,27 @@
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <limits>
 #include <iostream>
-#include <sys/time.h>
-#include <complex.h>
-
+#include <array>
+#include <stdexcept>
+//
+#include <mpi.h>
+//
+#include <malloc_quda.h>
+#include <tune_quda.h>
 #include <quda.h>
-#include <quda_internal.h>
+#include <comm_quda.h>
+#include <quda_api.h>
 #include <device.h>
 #include <timer.h>
-#include <comm_quda.h>
-#include <tune_quda.h>
-#include <algorithm>
-#include <mpi_comm_handle.h>
+#include <iterators.h>
+#include <transform_reduce_impl.h>
+//generic implementations
+#include <core/generic/include/global_reducer.h>
 
-
-//#include <split_grid.h>
-
-
-#define MAX(a,b) ((a)>(b)? (a):(b))
-#define TDIFF(a,b) (b.tv_sec - a.tv_sec + 0.000001*(b.tv_usec - a.tv_usec))
-
-
-using namespace quda;
+using iter_c32_t = decltype(std::vector<quda::complex<float>, AlignedAllocator<quda::complex<float> >>().begin());
 
 std::array<int, 4> gridsize_from_cmdline = {1, 1, 1, 1};
 int rank_order = 0;//col => 0, row => 1
+#if 1
 //!< Profiler for initQuda
 static TimeProfile profileInit("initQuda");
 
@@ -36,6 +31,7 @@ static TimeProfile profileEnd("endQuda");
 //!< Profiler for GEMM and other BLAS
 static TimeProfile profileBLAS("blasQuda");
 TimeProfile &getProfileBLAS() { return profileBLAS; }
+#endif
 //!< Profiler for toal time spend between init and end
 static TimeProfile profileInit2End("initQuda-endQuda",false);
 
@@ -153,47 +149,83 @@ void finalizeComms()
   MPI_Finalize();
 }
 
+template <typename T> struct compute_caxpyDot {
+    const quda::complex<T> *x;
+    quda::complex<T> *y;
+    const quda::complex<T> a;
 
+    __device__ __host__  compute_caxpyDot(const quda::complex<T> a_, const quda::complex<T> *x_, quda::complex<T> *y_) : a(a_), x(x_), y(y_) {}
 
-void initQUDABLAS(int argc, char **argv) {
-  profileInit2End.TPSTART(QUDA_PROFILE_TOTAL);
+    __device__ __host__ quda::complex<T> operator() (int i, int j = 0) const {
+      T yr = a.real()*x[i].real() + y[i].real();
+      T yi = a.imag()*x[i].imag() + y[i].imag();
+      y[i] = quda::complex<T>(yr, yi);
+      return quda::complex<T>(yr*x[i].real()-yi*x[i].imag(), yr*x[i].imag()-yi*x[i].real());
+    }
+};
 
-  profileInit.TPSTART(QUDA_PROFILE_TOTAL);
-  profileInit.TPSTART(QUDA_PROFILE_INIT);
+using iter_c32_t = decltype(std::vector<quda::complex<float>, AlignedAllocator<quda::complex<float> >>().begin());
 
-  std::cout << "Begin initialization.. " << std::endl;
-  initComms(argc, argv, gridsize_from_cmdline);
+template quda::complex<float>  quda::transform_reduce<QudaFieldLocation, quda::complex<float>, iter_c32_t, cplus<float>, compute_caxpyDot<float>>(
+      QudaFieldLocation&, iter_c32_t, iter_c32_t, quda::complex<float>, cplus<float>, compute_caxpyDot<float>);
+
+int main(int argc, char **argv) {
+   //
+   profileInit2End.TPSTART(QUDA_PROFILE_TOTAL);
+
+   profileInit.TPSTART(QUDA_PROFILE_TOTAL);
+   profileInit.TPSTART(QUDA_PROFILE_INIT);
+
+   std::cout << "Begin init: " << std::endl;
+   initComms(argc, argv, gridsize_from_cmdline);
    
-  quda::device::init(0);
+   quda::device::init(0);
    
-  loadTuneCache();   
+   loadTuneCache();   
 
-  quda::device::create_context();
+   quda::device::create_context();
 
-  loadTuneCache();
+   loadTuneCache();
 
-  // initalize the memory pool allocators
-  quda::pool::init();
+   // initalize the memory pool allocators
+   quda::pool::init();
 
-  //quda::reducer::init();
-  std::cout << "..done." << std::endl;   
+   quda::reducer::init();
+   std::cout << "..done." << std::endl;   
 
-  profileInit.TPSTOP(QUDA_PROFILE_INIT);
-  profileInit.TPSTOP(QUDA_PROFILE_TOTAL);
+   profileInit.TPSTOP(QUDA_PROFILE_INIT);
+   profileInit.TPSTOP(QUDA_PROFILE_TOTAL);
+
    
-  return;
-}
+   constexpr int N = 1024*1024;	
+   //
+   using alloc = quda::AlignedAllocator<quda::complex<float>>;
+   std::vector<quda::complex<float>, alloc> x(N, 1.0);
+   std::vector<quda::complex<float>, alloc> y(N, 1.0);   
 
-void endQUDABLAS(){
+   QudaFieldLocation location = QUDA_CUDA_FIELD_LOCATION;
+   //
+   //quda::complex<float> result = quda::transform_reduce(location, x.begin(), x.end(), 0.0f, quda::plus<quda::complex<float>>(), quda::identity<quda::complex<float>>(x.data()));  
+   //
+   quda::complex<float> a = 3.0;
+   quda::complex<float> result2= transform_reduce(location, x.begin(), x.end(), quda::complex<float>(0.0f,0.0f), quda::cplus<float>(),compute_caxpyDot<float>(a, x.data(), y.data()));     
+   //
+   //std::cout << std::fixed << result << std::endl;
+   std::cout << std::fixed << result2<< std::endl;   
+   
    quda::reducer::destroy();  
 //   
    pool::flush_pinned();
    pool::flush_device();
    saveTuneCache();
    saveProfile();
-//       
+//   
+    
    finalizeComms();
-  return;
+
+   return 0;	
 }
+
+
 
 

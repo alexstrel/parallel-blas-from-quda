@@ -1,5 +1,5 @@
 # add target specific files / options
-target_sources(quda_cpp PRIVATE ../generic/transform_reduce.cpp)
+target_sources(quda_cpp PRIVATE transform_reduce.cpp transform.cpp)
 
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld"
 [=[
@@ -10,5 +10,5 @@ SECTIONS
 }
 ]=])
 target_link_options(quda PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/fatbin.ld")
-#incorrect?
-target_compile_options(quda PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,NVHPC>: -cuda -gpu=fastmath -gpu=fma -gpu=lineinfo -gpu=autocollapse -gpu=unroll -gpu=cc86 -Minfo>)
+
+target_compile_options(quda PRIVATE $<$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>:-Xfatbin=-compress-all>)

@@ -74,8 +74,19 @@ namespace quda {
      */
     qudaEvent_t &get_event();
 
-    //these functions were imported from blas_quda.cu 
-    void init();
+    //these functions were imported from include/reducer.h 
+        /**
+       @brief Inititalizes any persistent buffers required for performing global
+       reductions.  If necessary, any previously allocated buffers will be resized.
+       @param n_reduce The number of reductions to perform
+       @param reduce_size Size in bytes of each value
+    */
+    void init(int n_reduce, size_t reduce_size);
+
+   /**
+       @brief Free any persistent buffers associated with global
+       reductions.
+    */
     void destroy();
 
   } // namespace reducer

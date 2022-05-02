@@ -1,7 +1,9 @@
 #pragma once
 
 #include <target_device.h>
-#include "../../../core/generic/include/reducer.h"
+#include <comm_quda.h>
+#include <float_vector.h>
+#include <reducer.h>
 
 /**
    @file block_reduce_helper.h
@@ -83,7 +85,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    __device__ __host__ inline T Sum(const T &value)
+    inline T Sum(const T &value)
     {
       return target::dispatch<warp_reduce>(value, false, quda::plus<T>(), param_t());
     }
@@ -93,7 +95,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads within the logical warp)
      */
-    __device__ __host__ inline T AllSum(const T &value)
+    inline T AllSum(const T &value)
     {
       return target::dispatch<warp_reduce>(value, true, quda::plus<T>(), param_t());
     }
@@ -103,7 +105,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    __device__ __host__ inline T Max(const T &value)
+    inline T Max(const T &value)
     {
       return target::dispatch<warp_reduce>(value, false, quda::maximum<T>(), param_t());
     }
@@ -113,7 +115,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads within the logical warp)
      */
-    __device__ __host__ inline T AllMax(const T &value)
+    inline T AllMax(const T &value)
     {
       return target::dispatch<warp_reduce>(value, true, quda::maximum<T>(), param_t());
     }
@@ -123,7 +125,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    __device__ __host__ inline T Min(const T &value)
+    inline T Min(const T &value)
     {
       return target::dispatch<warp_reduce>(value, false, quda::minimum<T>(), param_t());
     }
@@ -133,7 +135,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads within the logical warp)
      */
-    __device__ __host__ inline T AllMin(const T &value)
+    inline T AllMin(const T &value)
     {
       return target::dispatch<warp_reduce>(value, true, quda::minimum<T>(), param_t());
     }
@@ -164,7 +166,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    template <bool async = true> __device__ __host__ inline T Sum(const T &value)
+    template <bool async = true> inline T Sum(const T &value)
     {
       return target::dispatch<block_reduce>(value, async, batch, false, quda::plus<T>(), param_t());
     }
@@ -174,7 +176,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads in the block)
      */
-    template <bool async = true> __device__ __host__ inline T AllSum(const T &value)
+    template <bool async = true> inline T AllSum(const T &value)
     {
       static_assert(param_t::batch_size == 1, "Cannot do AllSum with batch_size > 1");
       return target::dispatch<block_reduce>(value, async, batch, true, quda::plus<T>(), param_t());
@@ -185,7 +187,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    template <bool async = true> __device__ __host__ inline T Max(const T &value)
+    template <bool async = true> inline T Max(const T &value)
     {
       return target::dispatch<block_reduce>(value, async, batch, false, quda::maximum<T>(), param_t());
     }
@@ -195,7 +197,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads in the block)
      */
-    template <bool async = true> __device__ __host__ inline T AllMax(const T &value)
+    template <bool async = true> inline T AllMax(const T &value)
     {
       static_assert(param_t::batch_size == 1, "Cannot do AllMax with batch_size > 1");
       return target::dispatch<block_reduce>(value, async, batch, true, quda::maximum<T>(), param_t());
@@ -206,7 +208,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in logical thread 0 only)
      */
-    template <bool async = true> __device__ __host__ inline T Min(const T &value)
+    template <bool async = true> inline T Min(const T &value)
     {
       return target::dispatch<block_reduce>(value, async, batch, false, quda::minimum<T>(), param_t());
     }
@@ -216,7 +218,7 @@ namespace quda
        @param[in] value Thread-local value to be reduced
        @return Reduced value (defined in all threads in the block)
      */
-    template <bool async = true> __device__ __host__ inline T AllMin(const T &value)
+    template <bool async = true> inline T AllMin(const T &value)
     {
       static_assert(param_t::batch_size == 1, "Cannot do AllMin with batch_size > 1");
       return target::dispatch<block_reduce>(value, async, batch, true, quda::minimum<T>(), param_t());
@@ -229,7 +231,7 @@ namespace quda
        @return Reduced value (defined in logical thread 0 only)
      */
     template <bool async = true, typename reducer_t>
-    __device__ __host__ inline T Reduce(const T &value, const reducer_t &r)
+    inline T Reduce(const T &value, const reducer_t &r)
     {
       return target::dispatch<block_reduce>(value, async, batch, false, r, param_t());
     }
@@ -241,7 +243,7 @@ namespace quda
        @return Reduced value (defined in all threads in the block)
      */
     template <bool async = true, typename reducer_t>
-    __device__ __host__ inline T AllReduce(const T &value, const reducer_t &r)
+    inline T AllReduce(const T &value, const reducer_t &r)
     {
       static_assert(param_t::batch_size == 1, "Cannot do AllReduce with batch_size > 1");
       return target::dispatch<block_reduce>(value, async, batch, true, r, param_t());

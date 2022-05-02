@@ -1,32 +1,29 @@
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <limits>
 #include <iostream>
-#include <sys/time.h>
-#include <complex.h>
-
+#include <array>
+#include <stdexcept>
+//
+#include <mpi.h>
+//
+#include <malloc_quda.h>
+#include <tune_quda.h>
 #include <quda.h>
-#include <quda_internal.h>
+#include <comm_quda.h>
+#include <quda_api.h>
 #include <device.h>
 #include <timer.h>
+#include <transform_reduce.h>
+#include <iterators.h>
+//
 #include <comm_quda.h>
-#include <tune_quda.h>
-#include <algorithm>
-#include <mpi_comm_handle.h>
-
-
-//#include <split_grid.h>
-
-
-#define MAX(a,b) ((a)>(b)? (a):(b))
-#define TDIFF(a,b) (b.tv_sec - a.tv_sec + 0.000001*(b.tv_usec - a.tv_usec))
-
-
-using namespace quda;
+#include <float_vector.h>
+//
+#include <reducer.h>
+#include <transformer.h>
 
 std::array<int, 4> gridsize_from_cmdline = {1, 1, 1, 1};
 int rank_order = 0;//col => 0, row => 1
+#if 1
 //!< Profiler for initQuda
 static TimeProfile profileInit("initQuda");
 
@@ -36,6 +33,7 @@ static TimeProfile profileEnd("endQuda");
 //!< Profiler for GEMM and other BLAS
 static TimeProfile profileBLAS("blasQuda");
 TimeProfile &getProfileBLAS() { return profileBLAS; }
+#endif
 //!< Profiler for toal time spend between init and end
 static TimeProfile profileInit2End("initQuda-endQuda",false);
 
@@ -111,6 +109,9 @@ namespace quda {
   void printLaunchTimer();
 }
 
+
+
+
 MPI_Comm MPI_COMM_HANDLE_USER;
 static bool user_set_comm_handle = false;
 
@@ -119,6 +120,21 @@ void setMPICommHandleQuda(void *mycomm)//??
   MPI_COMM_HANDLE_USER = *((MPI_Comm *)mycomm);
   user_set_comm_handle = true;
 }
+
+template <typename T, typename count_t> struct compute_axpyDot {
+  const T *x;
+  T *y;
+  const T a;
+  count_t n_items;
+
+  compute_axpyDot(const T a_, const T *x_, T *y_,  count_t n) : a(a_), x(x_), y(y_), n_items(n) {}
+
+  T operator() (count_t idx, count_t j = 0) const {
+    y[idx] = a*x[idx] + y[idx];
+    return (y[idx]*x[idx]);
+  }
+};
+
 
 int lex_rank_from_coords_t(const int *coords, void *)
 {
@@ -154,46 +170,64 @@ void finalizeComms()
 }
 
 
+int main(int argc, char **argv) {
+   //
+   profileInit2End.TPSTART(QUDA_PROFILE_TOTAL);
 
-void initQUDABLAS(int argc, char **argv) {
-  profileInit2End.TPSTART(QUDA_PROFILE_TOTAL);
+   profileInit.TPSTART(QUDA_PROFILE_TOTAL);
+   profileInit.TPSTART(QUDA_PROFILE_INIT);
 
-  profileInit.TPSTART(QUDA_PROFILE_TOTAL);
-  profileInit.TPSTART(QUDA_PROFILE_INIT);
-
-  std::cout << "Begin initialization.. " << std::endl;
-  initComms(argc, argv, gridsize_from_cmdline);
+   std::cout << "Begin init: " << std::endl;
+   initComms(argc, argv, gridsize_from_cmdline);
    
-  quda::device::init(0);
+   quda::device::init(0);
    
-  loadTuneCache();   
+   loadTuneCache();   
 
-  quda::device::create_context();
+   quda::device::create_context();
 
-  loadTuneCache();
+   loadTuneCache();
 
-  // initalize the memory pool allocators
-  quda::pool::init();
+   // initalize the memory pool allocators
+   quda::pool::init();
 
-  //quda::reducer::init();
-  std::cout << "..done." << std::endl;   
+   quda::reducer::init();
+   std::cout << "..done." << std::endl;   
 
-  profileInit.TPSTOP(QUDA_PROFILE_INIT);
-  profileInit.TPSTOP(QUDA_PROFILE_TOTAL);
+   profileInit.TPSTOP(QUDA_PROFILE_INIT);
+   profileInit.TPSTOP(QUDA_PROFILE_TOTAL);
+
    
-  return;
-}
+   constexpr int N = 1024*1024;	
+   //
+   using alloc = quda::AlignedAllocator<float>;
+   std::vector<float, alloc> x(N, 1.0);
+   std::vector<float, alloc> y(N, 1.0);   
 
-void endQUDABLAS(){
+   QudaFieldLocation location = QUDA_CUDA_FIELD_LOCATION;
+   //
+   float result = quda::transform_reduce(location, x.begin(), x.end(), 0.0f, quda::plus<float>(), quda::identity<float>(x.data()));  
+   //
+   float a = 3.0;
+   float result2= quda::transform_reduce(location, x.begin(), x.end(), 0.0f, quda::plus<float>(), quda::axpyDot<float>(a, x.data(), y.data()));     
+   //float result = quda::transform_reduce(location, 0, N, 0.0f, quda::plus<float>(), quda::identity<float>(x.data()));
+   //
+   std::cout << std::fixed << result << std::endl;
+   std::cout << std::fixed << result2<< std::endl;   
+   
    quda::reducer::destroy();  
 //   
    pool::flush_pinned();
    pool::flush_device();
    saveTuneCache();
    saveProfile();
-//       
+//   
+    
    finalizeComms();
-  return;
+
+   return 0;	
 }
+
+
 
 

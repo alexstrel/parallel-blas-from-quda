@@ -23,6 +23,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+  void initQUDABLAS(int argc, char **argv);
+  void endQUDABLAS();
 
   /**
    * initCommsGridQuda() takes an optional "rank_from_coords" argument that

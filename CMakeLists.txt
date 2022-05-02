@@ -186,7 +186,7 @@ option(QUDA_FAST_COMPILE_DSLASH "enable fast compilation in dslash kernels (~20%
 
 option(QUDA_OPENMP "enable OpenMP" OFF)
 set(QUDA_CXX_STANDARD
-    14
+    17
     CACHE STRING "set the CXX Standard (14 or 17)")
 set_property(CACHE QUDA_CXX_STANDARD PROPERTY STRINGS 14 17)
 
@@ -268,7 +268,7 @@ set(CMAKE_CXX_STANDARD ${QUDA_CXX_STANDARD})
 
 # define CXX FLAGS
 set(CMAKE_CXX_FLAGS_DEVEL
-    "-g -O3 -Wall -Wextra"
+    "-g -O3 -Wall -Wextra -cuda"
     CACHE STRING "Flags used by the C++ compiler during regular development builds.")
 set(CMAKE_CXX_FLAGS_STRICT
     "-O3 -Werror -Wall -Wextra"
@@ -340,7 +340,7 @@ if(${CMAKE_CUDA_COMPILER} MATCHES "clang")
 endif()
 
 set(CMAKE_CUDA_FLAGS_DEVEL
-    "-g -O3 "
+    "-g -O3 -cuda"
     CACHE STRING "Flags used by the CUDA compiler during regular development builds.")
 set(CMAKE_CUDA_FLAGS_STRICT
     "-g -O3"
@@ -529,7 +529,6 @@ include(CTest)
 # add tests, utils, reference, and quda library
 add_subdirectory(lib)
 add_subdirectory(core/cuda)
-#add_subdirectory(core/generic)
-target_include_directories(quda PRIVATE core/generic/include)
+target_include_directories(quda PRIVATE core/cuda/include)
 #add_subdirectory(tests)
 #add_subdirectory(doc)

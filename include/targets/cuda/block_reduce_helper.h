@@ -1,7 +1,9 @@
 #pragma once
 
 #include <target_device.h>
-#include "../../../core/generic/include/reducer.h" //WARNING : this is now an external header!
+#include <comm_quda.h>
+#include <float_vector.h>
+#include <reducer.h> //WARNING : this is now an external header!
 
 /**
    @file block_reduce_helper.h
@@ -41,7 +43,7 @@ namespace quda
        @return The warp-wide reduced value
      */
     template <typename T, typename reducer_t, typename param_t>
-    __device__ inline T operator()(const T &value_, bool all, const reducer_t &r, const param_t &)
+    inline T operator()(const T &value_, bool all, const reducer_t &r, const param_t &)
     {
       using warp_reduce_t = cub::WarpReduce<T, param_t::width, __COMPUTE_CAPABILITY__>;
       typename warp_reduce_t::TempStorage dummy_storage;
@@ -80,7 +82,7 @@ namespace quda
        @return The block-wide reduced value
      */
     template <typename T, typename reducer_t, typename param_t>
-    __device__ inline T operator()(const T &value_, bool async, int batch, bool all, const reducer_t &r,
+    inline T operator()(const T &value_, bool async, int batch, bool all, const reducer_t &r,
                                    const param_t &)
     {
       using block_reduce_t = cub::BlockReduce<T, param_t::block_size_x, cub::BLOCK_REDUCE_WARP_REDUCTIONS,

@@ -4,7 +4,8 @@
 #include <kernel.h>
 #include <kernel_host.h>
 
-//imported from lattice_field.h
+namespace quda
+{
   /**
      @brief Helper function for setting auxilary string
      @return String containing location and compilation type
@@ -14,95 +15,137 @@
     return location == QUDA_CUDA_FIELD_LOCATION ? "GPU-offline," : "CPU,";
   }
 
-namespace quda
-{
-
+  /**
+     @brief This derived tunable class is for kernels with simple 1-d
+     parallelism, and partners the Kernel1D kernel.  This is the base
+     class which is not directly instantiated, rather TunableKernel1D
+     and TunableGridStrideKernel1D which are derived specializations.
+   */
   template <bool grid_stride> class TunableKernel1D_base : public TunableKernel
   {
   protected:
     /**
-       Return whether we are grid-size tuning.  Marked as virtual in
+       @brief Return whether we are grid-size tuning.  Marked as virtual in
        case we need to override this, despite the grid_stride template
        (Dslash NVSHMEM does this).
     */
     virtual bool tuneGridDim() const { return grid_stride; }
 
+    /**
+       @brief Launch kernel on the device performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_device(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
       TunableKernel::launch_device<Functor, grid_stride>(KERNEL(Kernel1D), tp, stream, arg);
     }
 
+    /**
+       @brief Launch kernel on the host performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_host(const TuneParam &, const qudaStream_t &, const Arg &arg)
     {
       Kernel1D_host<Functor, Arg>(arg);
     }
 
+    /**
+       @brief Launch kernel on the set location performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @tpatam enable_host Whether to enable host compilation (default is not to)
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<!enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
+    void launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
       if (location == QUDA_CUDA_FIELD_LOCATION) {
         launch_device<Functor, Arg>(tp, stream, arg);
+      } else if constexpr (enable_host) {
+        launch_host<Functor, Arg>(tp, stream, arg);
       } else {
         errorQuda("CPU not supported yet");
       }
     }
 
-    template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
-    {
-      if (location == QUDA_CUDA_FIELD_LOCATION) {
-        launch_device<Functor, Arg>(tp, stream, arg);
-      } else {
-        launch_host<Functor, Arg>(tp, stream, arg);
-      }
-    }
-
   public:
-    TunableKernel1D_base(size_t n_items, QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
-      TunableKernel(location)
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] location Location where the calculation will take place
+     */
+    TunableKernel1D_base(size_t n_items, QudaFieldLocation location) : TunableKernel(location)
     {
       u64toa(vol, n_items);
       strcpy(aux, compile_type_str(location));
     }
   };
 
+  /**
+     @brief Tuning class for 1-d kernels that have a fixed grid size
+     and do not utilize a grid-stride loop.
+  */
   class TunableKernel1D : public TunableKernel1D_base<false>
   {
   protected:
     using Tunable::aux;
 
     /**
-       Since we are not grid-size tuning, we require any derivations
+       @brief Since we are not grid-size tuning, we require any derivations
        to specify the minimum thread count.
      */
     virtual unsigned int minThreads() const = 0;
 
   public:
-    TunableKernel1D(size_t n_items, QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
-      TunableKernel1D_base<false>(n_items, location)
-    {
-    }
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] location Location where the calculation will take place
+     */
+    TunableKernel1D(size_t n_items, QudaFieldLocation location) : TunableKernel1D_base<false>(n_items, location) { }
   };
 
+  /**
+     @brief Tuning class for 1-d kernels that have a fixed thread size
+     and do utilize a grid-stride loop.
+  */
   class TunableGridStrideKernel1D : public TunableKernel1D_base<true>
   {
   protected:
     using Tunable::aux;
 
   public:
-    TunableGridStrideKernel1D(size_t n_items, QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] location Location where the calculation will take place
+     */
+    TunableGridStrideKernel1D(size_t n_items, QudaFieldLocation location) :
       TunableKernel1D_base<true>(n_items, location)
     {
     }
   };
 
   /**
-     @brief This derived class is for algorithms that deploy a vector
-     of computations across the y dimension of both the threads block
-     and grid.  For example this could be parity in the y dimension
-     and checkerboarded volume in x.
+     @brief This derived tunable class is for kernels that deploy a
+     vector of computations across the y dimension of both the threads
+     block and grid, and partners the Kernel2D kernel.  This derived
+     class is for algorithms For example this could be parity in the y
+     dimension and checkerboarded volume in x.  This is the base class
+     which is not directly instantiated, rather TunableKernel2D and
+     TunableGridStrideKernel2D which are derived specializations.
    */
   template <bool grid_stride = false> class TunableKernel2D_base : public TunableKernel1D_base<grid_stride>
   {
@@ -111,6 +154,14 @@ namespace quda
     mutable unsigned int step_y;
     bool tune_block_x;
 
+    /**
+       @brief Launch kernel on the device performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_device(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
@@ -118,6 +169,14 @@ namespace quda
       TunableKernel::launch_device<Functor, grid_stride>(KERNEL(Kernel2D), tp, stream, arg);
     }
 
+    /**
+       @brief Launch kernel on the host performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_host(const TuneParam &, const qudaStream_t &, const Arg &arg)
     {
@@ -125,33 +184,44 @@ namespace quda
       Kernel2D_host<Functor, Arg>(arg);
     }
 
+    /**
+       @brief Launch kernel on the set location performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @tpatam enable_host Whether to enable host compilation (default is not to)
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<!enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
+    void launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
       if (TunableKernel1D_base<grid_stride>::location == QUDA_CUDA_FIELD_LOCATION) {
         launch_device<Functor, Arg>(tp, stream, arg);
+      } else if constexpr (enable_host) {
+        launch_host<Functor, Arg>(tp, stream, arg);
       } else {
         errorQuda("CPU not supported yet");
       }
     }
 
-    template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
-    {
-      if (TunableKernel1D_base<grid_stride>::location == QUDA_CUDA_FIELD_LOCATION) {
-        launch_device<Functor, Arg>(tp, stream, arg);
-      } else {
-        launch_host<Functor, Arg>(tp, stream, arg);
-      }
-    }
-
   public:
-    TunableKernel2D_base(size_t n_items, unsigned int vector_length_y,
-                         QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] location Location where the calculation will take place
+     */
+    TunableKernel2D_base(size_t n_items, unsigned int vector_length_y, QudaFieldLocation location) :
       TunableKernel1D_base<grid_stride>(n_items, location), vector_length_y(vector_length_y), step_y(1), tune_block_x(true)
     {
     }
 
+    /**
+       @brief Derived specialization for autotuning the batch size
+       dimension
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     bool advanceBlockDim(TuneParam &param) const
     {
       dim3 block = param.block;
@@ -186,6 +256,10 @@ namespace quda
       }
     }
 
+    /**
+       @brief Overload that sets ensures the y-dimension block size is set appropriately
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     void initTuneParam(TuneParam &param) const
     {
       Tunable::initTuneParam(param);
@@ -195,7 +269,10 @@ namespace quda
                                     this->sharedBytesPerBlock(param));
     }
 
-    /** sets default values for when tuning is disabled */
+    /**
+       @brief Overload that sets ensures the y-dimension block size is set appropriately
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     void defaultTuneParam(TuneParam &param) const
     {
       Tunable::defaultTuneParam(param);
@@ -205,48 +282,78 @@ namespace quda
                                     this->sharedBytesPerBlock(param));
     }
 
+    /**
+       @brief Resize the problem size in the y dimension
+       @brief[in] y New problem size
+    */
     void resizeVector(int y) const { vector_length_y = y; }
+
+    /**
+       @brief Resize the autotuning step size in the y dimension
+       @brief[in] y New step size
+    */
     void resizeStep(int y) const { step_y = y; }
   };
 
+  /**
+     @brief Tuning class for 2-d kernels that have a fixed grid size
+     and do not utilize a grid-stride loop.
+  */
   class TunableKernel2D : public TunableKernel2D_base<false>
   {
   protected:
     using Tunable::aux;
 
     /**
-       Since we are not grid-size tuning, we require any derivations
+       @brief Since we are not grid-size tuning, we require any derivations
        to specify the minimum thread count.
      */
     virtual unsigned int minThreads() const = 0;
 
   public:
-    TunableKernel2D(size_t n_items, unsigned int vector_length_y,
-                    QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] location Location where the calculation will take place
+     */
+    TunableKernel2D(size_t n_items, unsigned int vector_length_y, QudaFieldLocation location) :
       TunableKernel2D_base<false>(n_items, vector_length_y, location)
     {
     }
   };
 
+  /**
+     @brief Tuning class for 2-d kernels that have a fixed thread size
+     and do utilize a grid-stride loop.
+  */
   class TunableGridStrideKernel2D : public TunableKernel2D_base<true>
   {
   protected:
     using Tunable::aux;
 
   public:
-    TunableGridStrideKernel2D(size_t n_items, unsigned int vector_length_y,
-                              QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] location Location where the calculation will take place
+     */
+    TunableGridStrideKernel2D(size_t n_items, unsigned int vector_length_y, QudaFieldLocation location) :
       TunableKernel2D_base<true>(n_items, vector_length_y, location)
     {
     }
   };
 
   /**
-     @brief This derived class is for algorithms that deploy a vector
-     of computations across the y and z dimensions of both the threads
-     block and grid.  For example this could be parity in the y
-     dimension, direction in the z dimension and checkerboarded volume
-     in x.
+     @brief This derived tunable class is for kernels that deploy a
+     vector of computations across the y and z dimension of both the
+     threads block and grid, and partners the Kernel2D kernel.  This
+     derived class is for algorithms.  For example this could be
+     parity in the y dimension, direction in the z dimension and
+     checkerboarded volume in x.  This is the base class which is not
+     directly instantiated, rather TunableKernel3D and
+     TunableGridStrideKernel3D which are derived specializations.
    */
   template <bool grid_stride = false> class TunableKernel3D_base : public TunableKernel2D_base<grid_stride>
   {
@@ -256,6 +363,14 @@ namespace quda
     mutable unsigned step_z;
     bool tune_block_y;
 
+    /**
+       @brief Launch kernel on the device performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_device(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
@@ -264,6 +379,14 @@ namespace quda
       TunableKernel::launch_device<Functor, grid_stride>(KERNEL(Kernel3D), tp, stream, arg);
     }
 
+    /**
+       @brief Launch kernel on the host performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, typename Arg>
     void launch_host(const TuneParam &, const qudaStream_t &, const Arg &arg)
     {
@@ -272,29 +395,37 @@ namespace quda
       Kernel3D_host<Functor, Arg>(arg);
     }
 
+    /**
+       @brief Launch kernel on the set location performing the operation
+       defined in the functor.
+       @tparam Functor The functor that defined the reduction operation
+       @tpatam enable_host Whether to enable host compilation (default is not to)
+       @param[in] tp The launch parameters
+       @param[in] stream The stream on which the execution is done
+       @param[in] arg Kernel argument struct
+     */
     template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<!enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
+    void launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
     {
       if (TunableKernel2D_base<grid_stride>::location == QUDA_CUDA_FIELD_LOCATION) {
         launch_device<Functor, Arg>(tp, stream, arg);
+      } else if constexpr (enable_host) {
+        launch_host<Functor, Arg>(tp, stream, arg);
       } else {
         errorQuda("CPU not supported yet");
       }
     }
 
-    template <template <typename> class Functor, bool enable_host = false, typename Arg>
-    std::enable_if_t<enable_host, void> launch(const TuneParam &tp, const qudaStream_t &stream, const Arg &arg)
-    {
-      if (TunableKernel2D_base<grid_stride>::location == QUDA_CUDA_FIELD_LOCATION) {
-        launch_device<Functor, Arg>(tp, stream, arg);
-      } else {
-        launch_host<Functor, Arg>(tp, stream, arg);
-      }
-    }
-
   public:
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] vector_length_z Batch size of the computation in the z-dimension
+       @param[in] location Location where the calculation will take place
+     */
     TunableKernel3D_base(size_t n_items, unsigned int vector_length_y, unsigned int vector_length_z,
-                         QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+                         QudaFieldLocation location) :
       TunableKernel2D_base<grid_stride>(n_items, vector_length_y, location),
       vector_length_z(vector_length_z),
       step_z(1),
@@ -302,6 +433,11 @@ namespace quda
     {
     }
 
+    /**
+       @brief Derived specialization for autotuning the batch size
+       dimension
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     bool advanceBlockDim(TuneParam &param) const
     {
       dim3 block = param.block;
@@ -338,6 +474,10 @@ namespace quda
       }
     }
 
+    /**
+       @brief Overload that sets ensures the z-dimension block size is set appropriately
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     void initTuneParam(TuneParam &param) const
     {
       TunableKernel2D_base<grid_stride>::initTuneParam(param);
@@ -347,7 +487,10 @@ namespace quda
                                     this->sharedBytesPerBlock(param));
     }
 
-    /** sets default values for when tuning is disabled */
+    /**
+       @brief Overload that sets ensures the z-dimension block size is set appropriately
+       @param[in,out] param TuneParam object passed during autotuning
+     */
     void defaultTuneParam(TuneParam &param) const
     {
       TunableKernel2D_base<grid_stride>::defaultTuneParam(param);
@@ -357,11 +500,22 @@ namespace quda
                                     this->sharedBytesPerBlock(param));
     }
 
+    /**
+       @brief Resize the problem size in the y and z dimensions
+       @brief[in] y New problem size in y
+       @brief[in] z New problem size in z
+    */
     void resizeVector(int y, int z) const
     {
       vector_length_z = z;
       TunableKernel2D_base<grid_stride>::resizeVector(y);
     }
+
+    /**
+       @brief Resize the autotuning step size in the y and z dimensions
+       @brief[in] y New step size in y
+       @brief[in] z New step size in z
+    */
     void resizeStep(int y, int z) const
     {
       step_z = z;
@@ -369,20 +523,31 @@ namespace quda
     }
   };
 
+  /**
+     @brief Tuning class for 3-d kernels that have a fixed grid size
+     and do not utilize a grid-stride loop.
+  */
   class TunableKernel3D : public TunableKernel3D_base<false>
   {
   protected:
     using Tunable::aux;
 
     /**
-       Since we are not grid-size tuning, we require any derivations
+       @brief Since we are not grid-size tuning, we require any derivations
        to specify the minimum thread count.
      */
     virtual unsigned int minThreads() const = 0;
 
   public:
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] vector_length_z Batch size of the computation in the z-dimension
+       @param[in] location Location where the calculation will take place
+     */
     TunableKernel3D(size_t n_items, unsigned int vector_length_y, unsigned int vector_length_z,
-                    QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+                    QudaFieldLocation location) :
       TunableKernel3D_base<false>(n_items, vector_length_y, vector_length_z, location)
     {
     }
@@ -394,8 +559,15 @@ namespace quda
     using Tunable::aux;
 
   public:
+    /**
+       @brief Constructor for kernels that have a problem size only
+       @param[in] field A lattice field instance used for metadata
+       @param[in] vector_length_y Batch size of the computation in the y-dimension
+       @param[in] vector_length_z Batch size of the computation in the z-dimension
+       @param[in] location Location where the calculation will take place
+     */
     TunableGridStrideKernel3D(size_t n_items, unsigned int vector_length_y, unsigned int vector_length_z,
-                              QudaFieldLocation location = QUDA_INVALID_FIELD_LOCATION) :
+                              QudaFieldLocation location) :
       TunableKernel3D_base<true>(n_items, vector_length_y, vector_length_z, location)
     {
     }
